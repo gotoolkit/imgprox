@@ -9,6 +9,7 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"fmt"
 	"strconv"
+	"net/http"
 )
 
 func main() {
@@ -22,13 +23,15 @@ func main() {
 		outHeight := c.Query("h")
 		file, err := os.Open(fmt.Sprint("images/", inputname))
 		if err != nil {
-			log.Fatal("Open file: ", err)
+			c.String(http.StatusNotFound, "Open file: ", err)
+			return
 		}
 		defer file.Close()
 
 		img, err := png.Decode(file)
 		if err != nil {
-			log.Fatal("Decode image: ", err)
+			c.String(http.StatusConflict, "Decode image: ", err)
+			return
 		}
 
 		bounds := img.Bounds()
@@ -55,7 +58,8 @@ func main() {
 		outfilename := fmt.Sprint("images/result_", inputname)
 		outfile, err := os.Create(outfilename)
 		if err != nil {
-			log.Fatal("create file: ", err)
+			c.String(http.StatusInternalServerError, "Create file: ", err)
+			return
 		}
 		defer outfile.Close()
 

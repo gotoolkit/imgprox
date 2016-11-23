@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strconv"
 	"net/http"
+	"strings"
+	"image/jpeg"
 )
 
 func main() {
@@ -28,7 +30,14 @@ func main() {
 		}
 		defer file.Close()
 
-		img, err := png.Decode(file)
+		var img image.Image
+
+		if strings.Contains(inputname, ".png") {
+			img, err = png.Decode(file)
+		} else {
+			img, err = jpeg.Decode(file)
+		}
+
 		if err != nil {
 			c.String(http.StatusConflict, "Decode image: ", err)
 			return

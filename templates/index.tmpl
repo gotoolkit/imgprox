@@ -3,48 +3,95 @@
 <head>
     <link rel="stylesheet" href="//cdn.webix.com/edge/webix.css" type="text/css">
     <script src="//cdn.webix.com/edge/webix.js" type="text/javascript"></script>
+    <style>
+
+        .content {
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
-
 <script type="text/javascript" charset="utf-8">
     var filmset = [
         {{ range $i, $e := .files }}
-            {id:{{$i}}, title:{{$e.FileInfo.Name}}, path:{{$e.RealPath}}},
-        {{ end }}
+    {id:{{$i}}, title:{{$e.FileInfo.Name}}, path:{{$e.RealPath}}},
+    {{ end }}
     ];
 
     webix.ui({
+        responsive: true,
         rows: [
-            { view:"toolbar", id:"mybar", elements:[
-                { view:"button", value:"Add", width:70 },
-                { view:"button", value:"Delete", width:70 },
-                { view:"button", value:"Update", width:70 },
-                { view:"button", value:"Clear Form", width:85}]
+            {
+                view: "toolbar",
+                id: "mybar",
+                elements: [
+                    {view: "template", type: "header", template: "{{.title}}"}
+                ]
             },
-            { cols:[
-                {
-                    view:"list",
-                    id:"mylist",
-                    template:"#title#",
-                    select:true, //enables selection
-                    width: 180,
-                    data: filmset
-                },
-                {
-                    data: {title: "Image One", src: "images/Lenna.png" },
-                    id:"myimage",
-                    template: function (obj) {
-                        // obj is a data record object
-                        return '<img src="'+obj.src+'"/>'
-                    }
+            {view: "resizer"},
+            {
+                cols: [
+                    {
 
-                }]
+                        view: "list",
+                        id: "mylist",
+                        template: "#title#",
+                        select: true, //enables selection
+                        minWidth: 150,
+                        width: 180,
+                        maxWidth: 300,
+                        scroll: true,
+                        data: filmset
+                    },
+                    {view: "resizer"},
+                    {
+                        rows: [
+                            {
+                                rows: [
+                                    {view: "slider", type: "alt", label: "Start X", value: "0", name: "s1"},
+                                    {view: "slider", type: "alt", label: "Start Y", value: "0", name: "s1"},
+                                    {view: "slider", type: "alt", label: "Width", value: "0", name: "s1"},
+                                    {view: "slider", type: "alt", label: "Height", value: "0", name: "s1"}
+                                ]
+                            },
+                            {view: "resizer"},
+                            {
+                                view:"scrollview",
+                                id:"inscroll",
+                                scroll:"y",
+                                body:{
+                                    rows:[
+                                        {
+                                            data: {title: "Image One", src: "images/Lenna.png"},
+                                            id: "inputimage",
+                                            autoheight: true,
+                                            template: function (obj) {
+                                                // obj is a data record object
+                                                return '<img src="' + obj.src + '"  class="content"/>'
+                                            }
+
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {view: "resizer"},
+                    {
+                        data: {title: "Image One", src: "images/Lenna.png"},
+                        id: "outimage",
+                        template: function (obj) {
+                            // obj is a data record object
+                            return '<img src="' + obj.src + '" class="content"/>'
+                        }
+                    }
+                ]
             }
         ]
     });
 
-    $$("mylist").attachEvent("onAfterSelect", function(id){
-        $$("myimage").setValues({
+    $$("mylist").attachEvent("onAfterSelect", function (id) {
+        $$("inputimage").setValues({
             src: $$("mylist").getItem(id).path
         });
     });

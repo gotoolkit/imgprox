@@ -12,21 +12,62 @@ import (
 	"net/http"
 	"strings"
 	"image/jpeg"
+	"path/filepath"
 )
 
 func main() {
 	router := gin.Default()
 	router.LoadHTMLGlob("templates/*")
 	router.GET("/", indexPage)
-	router.GET("/images/:name", imageProx)
+	router.StaticFS("/images", http.Dir("images"))
+	router.GET("/image/:name/cut", imageProx)
 	router.Run(":8080")
 }
 
 func indexPage(c *gin.Context) {
+
+	files, err := fileList("images")
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
 		"title": "Main website",
+		"files": files,
 	})
 }
+
+type ImageFile struct {
+	FileInfo os.FileInfo
+	RealPath string
+}
+
+func fileList(path string) ([]ImageFile, error) {
+	var imgFiles []ImageFile
+
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if isImageFile(info) {
+			img := ImageFile{
+				FileInfo: info,
+				RealPath: path,
+			}
+			imgFiles = append(imgFiles, img)
+		}
+		return nil
+	})
+	return imgFiles, err
+}
+
+func isImageFile(info os.FileInfo) bool {
+	if  info.IsDir() {
+		return false
+	} else {
+		name := info.Name()
+		return strings.Contains(name, ".png") || strings.Contains(name, ".jpeg") || strings.Contains(name, ".jpg")
+	}
+
+}
+
 
 func imageProx(c *gin.Context) {
 	inputname := c.Param("name")

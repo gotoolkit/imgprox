@@ -11,12 +11,15 @@
     </style>
 </head>
 <body>
+<img id="randImage"/>
 <script type="text/javascript" charset="utf-8">
     var filmset = [
         {{ range $i, $e := .files }}
     {id:{{$i}}, title:{{$e.FileInfo.Name}}, path:{{$e.RealPath}}},
     {{ end }}
     ];
+
+    var currentId;
 
     webix.ui({
         responsive: true,
@@ -47,11 +50,10 @@
                     {
                         rows: [
                             {
+                                minHeight: 150,
+                                height: 180,
+                                id:'sliders',
                                 rows: [
-                                    {view: "slider", type: "alt", label: "Start X", value: "0", name: "s1"},
-                                    {view: "slider", type: "alt", label: "Start Y", value: "0", name: "s1"},
-                                    {view: "slider", type: "alt", label: "Width", value: "0", name: "s1"},
-                                    {view: "slider", type: "alt", label: "Height", value: "0", name: "s1"}
                                 ]
                             },
                             {view: "resizer"},
@@ -66,7 +68,6 @@
                                             id: "inputimage",
                                             autoheight: true,
                                             template: function (obj) {
-                                                // obj is a data record object
                                                 return '<img src="' + obj.src + '"  class="content"/>'
                                             }
 
@@ -81,8 +82,7 @@
                         data: {title: "Image One", src: "images/Lenna.png"},
                         id: "outimage",
                         template: function (obj) {
-                            // obj is a data record object
-                            return '<img src="' + obj.src + '" class="content"/>'
+                            return '<img src="' + obj.src + '"  class="content"/>'
                         }
                     }
                 ]
@@ -90,11 +90,104 @@
         ]
     });
 
+
+    function showResult(x, y, w, h) {
+        var url = "/image/" +$$("mylist").getItem(currentId).title + "/cut?x="+ x +"&y="+ y +"&w="+ w +"&h="+ h;
+        console.log(url)
+        webix.ajax(url, function (text, data, xhr) {
+
+            $$("outimage").setValues({
+                src: data.json().filename
+            });
+        });
+    }
+
+    function addSliders(width, height) {
+        $$("sliders").addView({
+            view: "slider",
+            id: "sliderX",
+            label: "Start X", value: "0", min: 0, max: width, name: "x",
+            on:{
+                onChange:function(){
+                    slided();
+                    this.define("title", "Final value " + this.getValue());
+                    this.refresh();
+                }
+            }
+        });
+        $$("sliders").addView({
+            view: "slider",
+            id: "sliderY",
+            label: "Start Y", value: "0", max: height, name: "y",
+            on:{
+                onChange:function(){
+                    slided();
+                    this.define("title", "Final value " + this.getValue());
+                    this.refresh();
+                }
+            }
+        });
+        $$("sliders").addView({
+            view: "slider",
+            id: "sliderW",
+            label: "Width",
+            value: width,
+            max: width,
+            name: "w",
+            on:{
+                onChange:function(){
+                    slided();
+                    this.define("title", "Final value " + this.getValue());
+                    this.refresh();
+                }
+            }});
+        $$("sliders").addView({
+            view: "slider",
+            id: "sliderH",
+            label: "Height",
+            value: height,
+            max: height,
+            name: "h",
+            on:{
+                onChange:function(){
+                    slided();
+                    this.define("title", "Final value " + this.getValue());
+                    this.refresh();
+                }
+            }
+        });
+    }
+    function removeSliders() {
+        $$("sliders").removeView("sliderX");
+        $$("sliders").removeView("sliderY");
+        $$("sliders").removeView("sliderW");
+        $$("sliders").removeView("sliderH");
+    }
+    function adjustValue() {
+        var url = "/image/" +$$("mylist").getItem(currentId).title + "/size";
+        webix.ajax(url, function (text, data, xhr) {
+            removeSliders();
+            addSliders(data.json().width, data.json().height);
+            showResult(0, 0, data.json().width, data.json().height)
+        });
+    }
+
     $$("mylist").attachEvent("onAfterSelect", function (id) {
         $$("inputimage").setValues({
             src: $$("mylist").getItem(id).path
         });
+        currentId = id;
+        adjustValue();
     });
+
+    function slided() {
+        var x = $$("sliderX").getValue()
+        var y = $$("sliderY").getValue()
+        var w = $$("sliderW").getValue()
+        var h = $$("sliderH").getValue()
+        showResult(x, y, w, h);
+
+    }
 </script>
 </body>
 </html>

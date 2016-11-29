@@ -1,18 +1,19 @@
 package main
 
 import (
-	"os"
-	"log"
-	"image/png"
+	"fmt"
+	"github.com/juju/errgo/errors"
+	"gopkg.in/gin-gonic/gin.v1"
 	"image"
 	"image/draw"
-	"gopkg.in/gin-gonic/gin.v1"
-	"fmt"
-	"strconv"
-	"net/http"
-	"strings"
 	"image/jpeg"
+	"image/png"
+	"log"
+	"net/http"
+	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 func main() {
@@ -20,7 +21,9 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 	router.GET("/", indexPage)
 	router.StaticFS("/images", http.Dir("images"))
+	router.StaticFS("/outputs", http.Dir("outputs"))
 	router.GET("/image/:name/cut", imageProx)
+	router.GET("/image/:name/size", imageSize)
 	router.Run(":8080")
 }
 
@@ -59,7 +62,7 @@ func fileList(path string) ([]ImageFile, error) {
 }
 
 func isImageFile(info os.FileInfo) bool {
-	if  info.IsDir() {
+	if info.IsDir() {
 		return false
 	} else {
 		name := info.Name()
@@ -68,6 +71,42 @@ func isImageFile(info os.FileInfo) bool {
 
 }
 
+func imageSize(c *gin.Context) {
+	inputname := c.Param("name")
+	img, err := imageFile(inputname)
+	if err != nil {
+		c.AbortWithError(http.StatusConflict, err)
+		return
+	}
+	bounds := img.Bounds()
+	x, y := bounds.Max.X, bounds.Max.Y
+	c.JSON(http.StatusOK, gin.H{
+		"width": x,
+		"height": y,
+	})
+}
+
+func imageFile(filename string) (image.Image, error) {
+	var img image.Image
+
+	file, err := os.Open(fmt.Sprint("images/", filename))
+	if err != nil {
+		return img, errors.Newf("Open file: ", err)
+	}
+
+	defer file.Close()
+
+	if strings.Contains(filename, ".png") {
+		img, err = png.Decode(file)
+	} else {
+		img, err = jpeg.Decode(file)
+	}
+
+	if err != nil {
+		return img, errors.Newf("Decode image: ", err)
+	}
+	return img, nil
+}
 
 func imageProx(c *gin.Context) {
 	inputname := c.Param("name")
@@ -75,23 +114,10 @@ func imageProx(c *gin.Context) {
 	outy := c.Query("y")
 	outwidth := c.Query("w")
 	outHeight := c.Query("h")
-	file, err := os.Open(fmt.Sprint("images/", inputname))
+
+	img, err := imageFile(inputname)
 	if err != nil {
-		c.String(http.StatusNotFound, "Open file: ", err)
-		return
-	}
-	defer file.Close()
-
-	var img image.Image
-
-	if strings.Contains(inputname, ".png") {
-		img, err = png.Decode(file)
-	} else {
-		img, err = jpeg.Decode(file)
-	}
-
-	if err != nil {
-		c.String(http.StatusConflict, "Decode image: ", err)
+		c.AbortWithError(http.StatusConflict, err)
 		return
 	}
 
@@ -116,7 +142,7 @@ func imageProx(c *gin.Context) {
 	pointX, _ := strconv.Atoi(outx)
 	pointY, _ := strconv.Atoi(outy)
 	draw.Draw(tmpImg, tmpImg.Bounds(), img, image.Pt(pointX, pointY), draw.Src)
-	outfilename := fmt.Sprint("images/result_", inputname)
+	outfilename := fmt.Sprint("outputs/", pointX, "_", pointY, "_", w, "_", h, "_", inputname)
 	outfile, err := os.Create(outfilename)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Create file: ", err)
@@ -125,6 +151,8 @@ func imageProx(c *gin.Context) {
 	defer outfile.Close()
 
 	png.Encode(outfile, tmpImg)
-
-	c.File(outfilename)
+	log.Println(outfilename)
+	c.JSON(http.StatusOK, gin.H{
+		"filename": outfilename,
+	})
 }

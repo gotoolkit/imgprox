@@ -15,9 +15,9 @@ docker run -d -p 8080:8080 containerize/imgprox
  
 ```
 
-####image process
+####image process with Web UI
 
-http://localhost:8080/images/list_menu.png?x=100&y=1200&w=&h=200
+http://localhost:8080/
 
 
 

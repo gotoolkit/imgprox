@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/juju/errgo/errors"
 	"gopkg.in/gin-gonic/gin.v1"
 	"image"
 	"image/draw"
@@ -14,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"errors"
 )
 
 func main() {
@@ -91,7 +91,7 @@ func imageFile(filename string) (image.Image, error) {
 
 	file, err := os.Open(fmt.Sprint("images/", filename))
 	if err != nil {
-		return img, errors.Newf("Open file: ", err)
+		return img, fmt.Errorf("Open file: %v", err)
 	}
 
 	defer file.Close()
@@ -103,7 +103,7 @@ func imageFile(filename string) (image.Image, error) {
 	}
 
 	if err != nil {
-		return img, errors.Newf("Decode image: ", err)
+		return img, fmt.Errorf("Decode image: %v", err)
 	}
 	return img, nil
 }

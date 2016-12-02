@@ -5,7 +5,6 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"image"
 	"image/draw"
-	"image/jpeg"
 	"image/png"
 	"log"
 	"net/http"
@@ -94,12 +93,7 @@ func imageFile(filename string) (image.Image, error) {
 	}
 
 	defer file.Close()
-
-	if strings.Contains(filename, ".png") {
-		img, err = png.Decode(file)
-	} else {
-		img, err = jpeg.Decode(file)
-	}
+	img, _, err = image.Decode(file)
 
 	if err != nil {
 		return img, fmt.Errorf("Decode image: %v", err)
